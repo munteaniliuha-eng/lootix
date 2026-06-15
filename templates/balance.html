@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-6 py-16">
+    <h1 class="text-4xl font-bold text-center mb-10">Пополнение баланса</h1>
+    
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-10">
+        <form method="POST" class="space-y-8">
+            <div>
+                <label class="block text-slate-400 mb-3 text-lg">Сумма пополнения (в USDT)</label>
+                <input type="number" name="amount" step="0.01" min="10" value="100" 
+                       class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-8 py-6 text-4xl focus:outline-none focus:border-cyan-500 text-center">
+            </div>
+            
+            <button type="submit" 
+                    class="w-full py-6 bg-gradient-to-r from-cyan-400 to-emerald-500 rounded-2xl text-2xl font-bold hover:scale-105 transition">
+                Пополнить баланс
+            </button>
+        </form>
+    </div>
+
+    <div class="mt-8 text-center text-slate-400 text-sm">
+        Оплата только USDT (TRC20)<br>
+        Средства зачисляются после подтверждения администратором
+    </div>
+</div>
+{% endblock %}
