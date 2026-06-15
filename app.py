@@ -29,7 +29,12 @@ def init_db():
             title TEXT NOT NULL,
             description TEXT,
             price REAL NOT NULL,
-            image TEXT
+            image TEXT,
+            category TEXT,
+            file_link TEXT,
+            created_by INTEGER,
+            status TEXT DEFAULT 'active',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
         CREATE TABLE IF NOT EXISTS transactions (
             id TEXT PRIMARY KEY,
@@ -40,45 +45,16 @@ def init_db():
             status TEXT DEFAULT 'completed',
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
-        -- Новые таблицы для продажи товаров и чатов
-        CREATE TABLE IF NOT EXISTS seller_products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            title TEXT NOT NULL,
-            description TEXT,
-            price REAL NOT NULL,
-            image TEXT,
-            status TEXT DEFAULT 'active',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS chats (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            buyer_id INTEGER,
-            seller_id INTEGER,
-            product_id INTEGER,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            chat_id INTEGER,
-            sender_id INTEGER,
-            message TEXT NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
     """)
     
-    # Демо товары (если таблица пустая)
     if db.execute("SELECT COUNT(*) FROM products").fetchone()[0] == 0:
-        db.executemany("INSERT INTO products (title, description, price, image) VALUES (?,?,?,?)", [
-            ("Forza Horizon 6 + Subnautica 2", "Steam общий аккаунт | Быстрая выдача", 149, "https://picsum.photos/id/1015/400/250"),
-            ("R.E.P.O. Steam Аккаунт", "Общий доступ | Быстрая выдача", 109, "https://picsum.photos/id/237/400/250"),
-            ("Смена региона Google Play", "Без входа в аккаунт", 90, "https://picsum.photos/id/201/400/250"),
-            ("Steam Аккаунт Казахстан", "Чистый аккаунт", 90, "https://picsum.photos/id/180/400/250"),
+        db.executemany("INSERT INTO products (title, description, price, image, category) VALUES (?,?,?,?,?)", [
+            ("Forza Horizon 6 + Subnautica 2", "Steam общий аккаунт", 149, "https://picsum.photos/id/1015/400/250", "Аккаунты"),
+            ("Смена региона Google Play", "Без входа", 90, "https://picsum.photos/id/201/400/250", "Услуги"),
         ])
         db.commit()
     db.close()
 
-# Инициализация базы при каждом запуске (важно для Render)
 init_db()
 
 @app.context_processor
@@ -96,10 +72,70 @@ def inject_user():
 @app.route("/")
 def index():
     db = get_db()
-    products = db.execute("SELECT * FROM products").fetchall()
+    products = db.execute("SELECT * FROM products WHERE status='active'").fetchall()
     db.close()
     return render_template("index.html", products=products)
 
+# ====================== МНОГОЭТАПНАЯ ПРОДАЖА ======================
+@app.route("/sell", methods=["GET", "POST"])
+def sell_step1():
+    if "user_id" not in session:
+        flash("Войдите в аккаунт", "error")
+        return redirect(url_for("login"))
+    
+    categories = ["Аккаунты", "Игры", "Услуги", "Цифровые товары", "Подписки", "Другое"]
+    
+    if request.method == "POST":
+        session["sell_category"] = request.form.get("category")
+        return redirect(url_for("sell_step2"))
+    
+    return render_template("sell_step1.html", categories=categories)
+
+@app.route("/sell/step2", methods=["GET", "POST"])
+def sell_step2():
+    if "user_id" not in session or "sell_category" not in session:
+        return redirect(url_for("sell"))
+    
+    if request.method == "POST":
+        session["sell_title"] = request.form.get("title")
+        session["sell_description"] = request.form.get("description")
+        session["sell_price"] = float(request.form.get("price"))
+        session["sell_image"] = request.form.get("image")
+        return redirect(url_for("sell_step3"))
+    
+    return render_template("sell_step2.html", category=session["sell_category"])
+
+@app.route("/sell/step3", methods=["GET", "POST"])
+def sell_step3():
+    if "user_id" not in session or "sell_title" not in session:
+        return redirect(url_for("sell"))
+    
+    if request.method == "POST":
+        db = get_db()
+        db.execute("""INSERT INTO products 
+            (title, description, price, image, category, file_link, created_by) 
+            VALUES (?,?,?,?,?,?,?)""", (
+                session["sell_title"],
+                session["sell_description"],
+                session["sell_price"],
+                session["sell_image"],
+                session["sell_category"],
+                request.form.get("file_link"),
+                session["user_id"]
+            ))
+        db.commit()
+        db.close()
+        
+        # Очищаем сессию продажи
+        for key in ["sell_category", "sell_title", "sell_description", "sell_price", "sell_image"]:
+            session.pop(key, None)
+        
+        flash("Товар успешно опубликован!", "success")
+        return redirect(url_for("dashboard"))
+    
+    return render_template("sell_step3.html")
+
+# ====================== Остальные маршруты ======================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -126,10 +162,10 @@ def register():
         try:
             db.execute("INSERT INTO users (username, email, password) VALUES (?,?,?)", (username, email, password))
             db.commit()
-            flash("Регистрация успешна! Теперь войдите.", "success")
+            flash("Регистрация успешна!", "success")
             return redirect(url_for("login"))
         except:
-            flash("Пользователь с таким email уже существует", "error")
+            flash("Email уже используется", "error")
         finally:
             db.close()
     return render_template("register.html")
@@ -137,65 +173,38 @@ def register():
 @app.route("/dashboard")
 def dashboard():
     if "user_id" not in session:
-        flash("Войдите в аккаунт", "error")
         return redirect(url_for("login"))
     db = get_db()
     user = db.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
-    transactions = db.execute("SELECT * FROM transactions WHERE user_id=? ORDER BY created_at DESC", (session["user_id"],)).fetchall()
+    my_products = db.execute("SELECT * FROM products WHERE created_by=?", (session["user_id"],)).fetchall()
     db.close()
-    return render_template("dashboard.html", user=user, transactions=transactions)
+    return render_template("dashboard.html", user=user, my_products=my_products)
 
 @app.route("/balance", methods=["GET", "POST"])
 def balance():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+    if "user_id" not in session: return redirect(url_for("login"))
     if request.method == "POST":
         amount = float(request.form.get("amount", 0))
         if amount > 0:
             tx_id = str(uuid.uuid4())[:12].upper()
             db = get_db()
             db.execute("INSERT INTO transactions (id, user_id, type, amount, description) VALUES (?,?,?,?,?)",
-                       (tx_id, session["user_id"], "topup", amount, "Пополнение USDT"))
+                       (tx_id, session["user_id"], "topup", amount, "Пополнение"))
             db.commit()
             db.close()
-            flash(f"Заявка на пополнение {amount} USDT создана", "success")
+            flash(f"Заявка на {amount} USDT создана", "success")
             return redirect(url_for("topup_pay", tx_id=tx_id))
     return render_template("balance.html")
 
 @app.route("/topup/<tx_id>")
 def topup_pay(tx_id):
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+    if "user_id" not in session: return redirect(url_for("login"))
     return render_template("topup_pay.html", amount=100, wallet=USDT_WALLET)
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("index"))
-# ====================== ПРОДАЖА ТОВАРОВ ======================
-@app.route("/sell", methods=["GET", "POST"])
-def sell():
-    if "user_id" not in session:
-        flash("Войдите в аккаунт, чтобы продавать", "error")
-        return redirect(url_for("login"))
-    
-    if request.method == "POST":
-        title = request.form.get("title")
-        description = request.form.get("description")
-        price = float(request.form.get("price", 0))
-        image = request.form.get("image", "https://picsum.photos/400/250")
-        
-        db = get_db()
-        db.execute("""INSERT INTO products (title, description, price, image) 
-                      VALUES (?,?,?,?)""", (title, description, price, image))
-        db.commit()
-        db.close()
-        
-        flash("Товар успешно опубликован!", "success")
-        return redirect(url_for("dashboard"))
-    
-    return render_template("sell.html")
 
-# Добавь новую таблицу для чатов (добавь в init_db())
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
