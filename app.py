@@ -147,6 +147,30 @@ def topup_pay(tx_id):
 def logout():
     session.clear()
     return redirect(url_for("index"))
+# ====================== ПРОДАЖА ТОВАРОВ ======================
+@app.route("/sell", methods=["GET", "POST"])
+def sell():
+    if "user_id" not in session:
+        flash("Войдите в аккаунт, чтобы продавать", "error")
+        return redirect(url_for("login"))
+    
+    if request.method == "POST":
+        title = request.form.get("title")
+        description = request.form.get("description")
+        price = float(request.form.get("price", 0))
+        image = request.form.get("image", "https://picsum.photos/400/250")
+        
+        db = get_db()
+        db.execute("""INSERT INTO products (title, description, price, image) 
+                      VALUES (?,?,?,?)""", (title, description, price, image))
+        db.commit()
+        db.close()
+        
+        flash("Товар успешно опубликован!", "success")
+        return redirect(url_for("dashboard"))
+    
+    return render_template("sell.html")
 
+# Добавь новую таблицу для чатов (добавь в init_db())
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
