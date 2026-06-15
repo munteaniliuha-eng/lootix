@@ -40,15 +40,40 @@ def init_db():
             status TEXT DEFAULT 'completed',
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
+        -- Новые таблицы для продажи товаров и чатов
+        CREATE TABLE IF NOT EXISTS seller_products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            title TEXT NOT NULL,
+            description TEXT,
+            price REAL NOT NULL,
+            image TEXT,
+            status TEXT DEFAULT 'active',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS chats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            buyer_id INTEGER,
+            seller_id INTEGER,
+            product_id INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chat_id INTEGER,
+            sender_id INTEGER,
+            message TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
     """)
-    # Создаём демо-товары, если их нет
+    
+    # Демо товары (если таблица пустая)
     if db.execute("SELECT COUNT(*) FROM products").fetchone()[0] == 0:
         db.executemany("INSERT INTO products (title, description, price, image) VALUES (?,?,?,?)", [
             ("Forza Horizon 6 + Subnautica 2", "Steam общий аккаунт | Быстрая выдача", 149, "https://picsum.photos/id/1015/400/250"),
             ("R.E.P.O. Steam Аккаунт", "Общий доступ | Быстрая выдача", 109, "https://picsum.photos/id/237/400/250"),
             ("Смена региона Google Play", "Без входа в аккаунт", 90, "https://picsum.photos/id/201/400/250"),
             ("Steam Аккаунт Казахстан", "Чистый аккаунт", 90, "https://picsum.photos/id/180/400/250"),
-            ("Black Myth: Wukong", "Аккаунт с игрой", 119, "https://picsum.photos/id/1016/400/250"),
         ])
         db.commit()
     db.close()
