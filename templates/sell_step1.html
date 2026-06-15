@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-6 py-12">
+    <h1 class="text-4xl font-bold text-center mb-10">Выберите категорию товара</h1>
+    
+    <form method="POST" class="grid grid-cols-2 gap-4">
+        {% for cat in categories %}
+        <button type="submit" name="category" value="{{ cat }}" 
+                class="bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500 p-8 rounded-3xl text-left transition-all group">
+            <div class="text-2xl mb-3">{{ cat }}</div>
+            <p class="text-slate-400 text-sm">Продажа {{ cat.lower() }}</p>
+        </button>
+        {% endfor %}
+    </form>
+</div>
+{% endblock %}
