@@ -1,1 +1,33 @@
+{% extends "base.html" %}
 
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-10">
+    <div class="text-center mb-12">
+        <h1 class="text-5xl font-bold mb-4 gradient-text">Купи аккаунты и услуги</h1>
+        <p class="text-xl text-slate-400">Быстрая выдача • Безопасно • Круглосуточно</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for p in products %}
+        <div class="card bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden hover:border-cyan-500 transition-all duration-300 group">
+            <img src="{{ p['image'] }}" class="w-full h-52 object-cover group-hover:scale-105 transition-transform">
+            <div class="p-6">
+                <h3 class="font-semibold text-lg mb-2 line-clamp-2">{{ p['title'] }}</h3>
+                <p class="text-slate-400 text-sm line-clamp-3 mb-6">{{ p['description'] }}</p>
+                
+                <div class="flex items-end justify-between">
+                    <div>
+                        <span class="text-3xl font-bold text-cyan-400">{{ p['price'] }}</span>
+                        <span class="text-slate-400">₽</span>
+                    </div>
+                    <a href="#" onclick="alert('Покупка в разработке')" 
+                       class="bg-cyan-500 hover:bg-cyan-600 px-8 py-3 rounded-2xl text-sm font-semibold transition">
+                        Купить
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
