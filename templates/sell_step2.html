@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-6 py-12">
+    <h1 class="text-3xl font-bold mb-2">Создание товара</h1>
+    <p class="text-cyan-400 mb-8">Категория: <strong>{{ category }}</strong></p>
+    
+    <form method="POST" class="space-y-8">
+        <div>
+            <label class="block text-slate-400 mb-2">Название товара</label>
+            <input type="text" name="title" required 
+                   class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-6 py-4 text-lg">
+        </div>
+        
+        <div>
+            <label class="block text-slate-400 mb-2">Описание товара</label>
+            <textarea name="description" rows="6" required 
+                      class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-6 py-4"></textarea>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <label class="block text-slate-400 mb-2">Цена (в рублях)</label>
+                <input type="number" name="price" step="1" min="10" required 
+                       class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-6 py-4 text-2xl">
+            </div>
+            <div>
+                <label class="block text-slate-400 mb-2">Изображение (ссылка)</label>
+                <input type="text" name="image" placeholder="https://..." 
+                       class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-6 py-4">
+            </div>
+        </div>
+        
+        <div class="flex gap-4">
+            <a href="/sell" class="flex-1 py-5 text-center border border-slate-600 rounded-2xl hover:bg-slate-800">← Назад</a>
+            <button type="submit" class="flex-1 py-5 bg-gradient-to-r from-cyan-400 to-emerald-500 rounded-2xl font-bold text-lg">
+                Продолжить →
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
